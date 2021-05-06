@@ -17,8 +17,9 @@ public class UserController {
     @SocketRequestMapping("login")
     public Map login(Map<String, Object> user) {
         System.out.println(user);
-        user.put("care","阿达");
-        return user;
+        user.put("care","abc");
+        throw new RuntimeException("出错了");
+//        return user;
     }
 
 

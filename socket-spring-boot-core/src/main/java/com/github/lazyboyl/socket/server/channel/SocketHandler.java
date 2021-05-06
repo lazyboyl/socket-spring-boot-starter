@@ -12,6 +12,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,11 +61,6 @@ public class SocketHandler extends SimpleChannelInboundHandler<String> {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-//        super.exceptionCaught(ctx, cause);
-    }
-
-    @Override
     protected void channelRead0(ChannelHandlerContext ctx, String msg) {
         log.debug("请求的数据是：{}", msg);
         try {
@@ -89,8 +85,41 @@ public class SocketHandler extends SimpleChannelInboundHandler<String> {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            SocketUtil.writeAndFlush(ctx.channel(), new SocketResponse(HttpResponseStatus.BAD_REQUEST.code(), "JSON解析异常"));
+            List<NettyBeanDefinition> nettyBeanDefinitions = NettySocketServer.socketGolbalExceptionBeanFactory.getNettyBeanDefinitionList();
+            doExceptionHandler(ctx, nettyBeanDefinitions, "errorHandler", e);
+        }
+    }
+
+
+    /**
+     * 功能描述： 全局异常的处理的实现
+     *
+     * @param ctx                  当前通道对象
+     * @param nettyBeanDefinitions 相应的bean的集合
+     * @param action               全局异常的方法
+     * @param exception            异常信息
+     */
+    protected void doExceptionHandler(ChannelHandlerContext ctx, List<NettyBeanDefinition> nettyBeanDefinitions, String action, Exception exception) {
+        Object resultObj = null;
+        for (NettyBeanDefinition nbd : nettyBeanDefinitions) {
+            for (Map.Entry<String, NettyMethodDefinition> entry : nbd.getMethodMap().entrySet()) {
+                String[] k1s = entry.getKey().split("\\.");
+                Object[] obj = new Object[]{exception};
+                if (k1s[k1s.length - 1].equals(action)) {
+                    try {
+                        resultObj = entry.getValue().getMethod().invoke(nbd.getObject(), obj);
+                        ctx.channel().writeAndFlush(JsonUtils.objToJson(resultObj));
+                        return;
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        if (resultObj == null) {
+            exception.printStackTrace();
         }
     }
 
@@ -179,10 +208,10 @@ public class SocketHandler extends SimpleChannelInboundHandler<String> {
         if (nettyMethodDefinition.getParameters().length == 0) {
             try {
                 object = nettyMethodDefinition.getMethod().invoke(nettyBeanDefinition.getObject());
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                List<NettyBeanDefinition> nettyBeanDefinitions = NettySocketServer.socketGolbalExceptionBeanFactory.getNettyBeanDefinitionList();
+                doExceptionHandler(ctx, nettyBeanDefinitions, "errorHandler", e);
+                return;
             }
         } else {
             Parameter[] ps = nettyMethodDefinition.getParameters();
@@ -217,10 +246,10 @@ public class SocketHandler extends SimpleChannelInboundHandler<String> {
             }
             try {
                 object = nettyMethodDefinition.getMethod().invoke(nettyBeanDefinition.getObject(), obj);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                List<NettyBeanDefinition> nettyBeanDefinitions = NettySocketServer.socketGolbalExceptionBeanFactory.getNettyBeanDefinitionList();
+                doExceptionHandler(ctx, nettyBeanDefinitions, "errorHandler", e);
+                return;
             }
         }
         if (!"void".equals(nettyMethodDefinition.getReturnClass().getName())) {

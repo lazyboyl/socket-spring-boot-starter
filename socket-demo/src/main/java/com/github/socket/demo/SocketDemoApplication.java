@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@EnableSocketServer(socketScanPackage = {"com.github.socket.demo.controller","com.github.socket.demo.security"})
+@EnableSocketServer(socketScanPackage = {"com.github.socket.demo"})
 public class SocketDemoApplication {
 
     public static void main(String[] args) {

@@ -2,6 +2,7 @@ package com.github.lazyboyl.socket.util;
 
 import com.github.lazyboyl.socket.entity.SocketResponse;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
 
 /**
  * @author linzf

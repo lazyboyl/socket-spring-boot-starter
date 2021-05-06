@@ -1,6 +1,7 @@
 package com.github.lazyboyl.socket.server;
 
 import com.github.lazyboyl.socket.annotation.SocketController;
+import com.github.lazyboyl.socket.exception.SocketGlobalException;
 import com.github.lazyboyl.socket.factory.NettyDefaultBeanFactory;
 import com.github.lazyboyl.socket.factory.SocketControllerBeanFactory;
 import com.github.lazyboyl.socket.factory.SocketInterfaceBeanFactory;
@@ -13,7 +14,6 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.logging.LoggingHandler;
@@ -91,6 +91,11 @@ public class NettySocketServer implements ApplicationContextAware {
     public static SocketInterfaceBeanFactory socketHandlerListenerBeanFactory;
 
     /**
+     * socketGlobalException的工厂扫描类
+     */
+    public static SocketInterfaceBeanFactory socketGolbalExceptionBeanFactory;
+
+    /**
      * 日志对象
      */
     private static Logger log = LoggerFactory.getLogger(NettySocketServer.class);
@@ -132,8 +137,8 @@ public class NettySocketServer implements ApplicationContextAware {
                     @Override
                     public void initChannel(SocketChannel channel) {
                         ChannelPipeline p = channel.pipeline();
-                        channel.pipeline().addLast(new StringDecoder());
-                        channel.pipeline().addLast(new StringEncoder());
+                        p.addLast(new StringDecoder());
+                        p.addLast(new StringEncoder());
                         p.addLast(new SocketHandler());
                     }
                 });
@@ -164,6 +169,8 @@ public class NettySocketServer implements ApplicationContextAware {
         injectionBean(SocketSecurity.class, socketSecurityBeanFactory, nettyScanner);
         socketHandlerListenerBeanFactory = SocketInterfaceBeanFactory.getInstance();
         injectionBean(SocketHandlerListener.class, socketHandlerListenerBeanFactory, nettyScanner);
+        socketGolbalExceptionBeanFactory = SocketInterfaceBeanFactory.getInstance();
+        injectionBean(SocketGlobalException.class, socketGolbalExceptionBeanFactory, nettyScanner);
     }
 
     /**
